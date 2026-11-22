@@ -1,0 +1,19 @@
+{
+  "type": "create_fabricator:fabricating",
+  "ingredients": [
+    {
+      "item": "minecraft:input_item_1"
+    },
+    {
+      "item": "minecraft:input_item_2"
+    }
+  ],
+  "results": [
+    {
+      "id": "create_fabricator:output_item",
+      "count": 1
+    }
+  ],
+  "processingTime": 20480
+}
+
