@@ -1,6 +1,6 @@
 # Create Fabricator
 
-**Create Fabricator** is a Create addon for Minecraft 1.21.1 (NeoForge) that adds the **Fabricator**—a kinetic processing machine used to craft **Fabrilite** and custom datapack recipes.
+**Create Fabricator** is a Create addon for Minecraft 1.21.1 (NeoForge) that adds **Fabrilite** and the **Fabricator**—a kinetic processing machine used to craft items and custom datapack recipes.
 
 ---
 
@@ -10,8 +10,8 @@
 * Place down the **Fabricator** and connect a spinning shaft or cogwheel to its rotational axis.
 * The machine requires at least **128 RPM** to operate.
 * Running it faster speeds up crafting:
-  * **128 RPM:** Standard speed (e.g., 8 seconds for Fabrilite Nuggets)
-  * **256 RPM:** Double speed (4 seconds for Fabrilite Nuggets)
+  * **128 RPM:** Standard speed (8 seconds)
+  * **256 RPM:** Double speed (4 seconds)
 * Put on **Engineer's Goggles** and look at the Fabricator to see its live RPM and crafting progress on the left of your crosshair.
 
 ### 2. Using the Machine & Automation
@@ -19,17 +19,6 @@
 * **Funnels, Belts & Hoppers:**
   * Point **Andesite or Brass Funnels** (or hoppers/chutes) into any side of the Fabricator to automatically load ingredients into the 3 input slots.
   * Attach an outgoing **Funnel** onto a **Depot** or **Mechanical Belt** to automatically pull finished items out of the output slot.
-
----
-
-## Crafting Fabrilite
-
-To make **1 Fabrilite Nugget**, load the following into the Fabricator's 3 input slots at **128+ RPM**:
-* **8x Blue Dye**
-* **1x Stone**
-* **2x Iron Nuggets**
-
-Combine **9 Fabrilite Nuggets** in a crafting table to make a **Fabrilite Ingot**, or 9 ingots to make a **Block of Fabrilite**.
 
 ---
 
@@ -46,15 +35,15 @@ Create Fabricator uses its own recipe type: `create_fabricator:fabricating`.
   "type": "create_fabricator:fabricating",
   "ingredients": [
     {
-      "item": "minecraft:iron_ingot"
+      "item": "minecraft:input_item"
     },
     {
-      "item": "minecraft:redstone"
+      "item": "create_fabricator:fabrilite_ingot"
     }
   ],
   "results": [
     {
-      "id": "create_fabricator:fabrilite_ingot",
+      "id": "minecraft:output_item",
       "count": 1
     }
   ],
@@ -63,6 +52,7 @@ Create Fabricator uses its own recipe type: `create_fabricator:fabricating`.
 ```
 
 ### Recipe Rules & Tips
+* **Keep Recipes Balanced:** When making custom recipes, avoid creating infinite resource loops or unreasonably upscaling cheap items into something clearly more valuable (such as turning dirt or cobblestone into diamonds or netherite).
 * **Multiple of the Same Item:** Repeat `{ "item": "..." }` in the `ingredients` list for each item required (up to **16 total items** across the 3 input slots). Tags like `{ "tag": "c:ingots/iron" }` also work.
 * **Output Format:** Make sure `"results"` uses `"id"` (not `"item"`) and `"count"`.
 * **Calculating `processingTime`:** Processing time divides by the machine's current RPM every tick (20 ticks = 1 second):
