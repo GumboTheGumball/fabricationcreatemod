@@ -66,3 +66,6 @@ Create Fabricator uses its own recipe type: `create_fabricator:fabricating`.
 * **Minecraft:** 1.21.1
 * **Mod Loader:** NeoForge
 * **Dependencies:** Create (6.0.7+)
+
+
+https://github.com/GumboTheGumball/fabricationcreatemod/blob/Page/universal-create-generator-v2.html
