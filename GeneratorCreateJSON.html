@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Mod Recipe Generator (1.21.1 NeoForge)</title>
+  <style>
+    :root {
+      --bg: #181a1f;
+      --panel: #22262e;
+      --border: #343a46;
+      --text: #e6e8ec;
+      --muted: #9aa3b2;
+      --accent: #d9822b;
+      --accent-hover: #e5933e;
+      --fluid: #3b82f6;
+    }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body {
+      margin: 0; padding: 16px; background: var(--bg); color: var(--text);
+      display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px;
+    }
+    @media (max-width: 780px) { body { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px;
+    }
+    h2 { margin: 0 0 4px; font-size: 16px; color: var(--accent); }
+    label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+    input, select {
+      width: 100%; padding: 8px 10px; border-radius: 6px;
+      border: 1px solid var(--border); background: #121418; color: var(--text);
+      font-family: ui-monospace, monospace; font-size: 13px;
+    }
+    select { font-family: system-ui, -apple-system, sans-serif; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    button {
+      padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border);
+      background: #2c313c; color: var(--text); cursor: pointer; font-weight: 600; font-size: 13px;
+    }
+    button:hover { background: #383e4c; }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #121418; }
+    button.primary:hover { background: var(--accent-hover); }
+    button.fluid-btn { border-color: var(--fluid); color: #93c5fd; }
+    button.danger { color: #ff7b7b; padding: 8px 10px; }
+    pre {
+      margin: 0; padding: 12px; background: #121418; border: 1px solid var(--border);
+      border-radius: 6px; overflow: auto; flex: 1; font-size: 13px; line-height: 1.45;
+      font-family: ui-monospace, monospace; color: #a5d6ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Create Mod Recipe Generator (1.21.1)</h2>
+
+    <div class="row">
+      <div style="flex:1;">
+        <label>Machine / Recipe Type</label>
+        <select id="recipe-type" onchange="toggleFields(); render();">
+          <option value="create:mixing">Mechanical Mixer (create:mixing)</option>
+          <option value="create:compacting">Compacting / Basin Press (create:compacting)</option>
+          <option value="create:crushing">Crushing Wheels (create:crushing)</option>
+          <option value="create:milling">Millstone (create:milling)</option>
+          <option value="create:pressing">Mechanical Press (create:pressing)</option>
+          <option value="create:cutting">Mechanical Saw (create:cutting)</option>
+          <option value="create:splashing">Bulk Washing / Splashing (create:splashing)</option>
+          <option value="create:haunting">Bulk Haunting (create:haunting)</option>
+        </select>
+      </div>
+      <div style="flex:1;" id="heat-wrap">
+        <label>Heat Requirement</label>
+        <select id="heat-req" onchange="render()">
+          <option value="none">None</option>
+          <option value="heated">Heated (Blaze Burner)</option>
+          <option value="superheated">Superheated (Blaze Cake)</option>
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label>Item Ingredients (Use # prefix for tags, e.g. #c:ingots/iron)</label>
+      <div id="items-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+      <button type="button" onclick="addItem()" style="margin-top:8px;">+ Add Item Input</button>
+    </div>
+
+    <div id="fluids-wrap">
+      <label>Fluid Ingredients (mB)</label>
+      <div id="fluids-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+      <button type="button" class="fluid-btn" onclick="addFluid()" style="margin-top:8px;">+ Add Liquid Input</button>
+    </div>
+
+    <div class="row">
+      <div style="flex:3;">
+        <label>Output Item ID</label>
+        <input id="output-id" value="minecraft:copper_ingot" oninput="render()" />
+      </div>
+      <div style="flex:1;">
+        <label>Count</label>
+        <input id="output-count" type="number" min="1" value="1" oninput="render()" />
+      </div>
+    </div>
+
+    <div id="time-wrap">
+      <label>Processing Time (ticks)</label>
+      <input id="processing-time" type="number" min="1" value="100" oninput="render()" />
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Generated JSON</h2>
+    <pre id="json-preview"></pre>
+    <div class="row">
+      <button class="primary" onclick="copyJson()" id="copy-btn">Copy JSON</button>
+      <button onclick="downloadJson()">Download .json</button>
+    </div>
+  </div>
+
+  <script>
+    let items = ["minecraft:coal"];
+    let fluids = [{ fluid: "minecraft:water", amount: 1000 }];
+
+    function toggleFields() {
+      const type = document.getElementById("recipe-type").value;
+      const isBasin = type === "create:mixing" || type === "create:compacting";
+      const hasTime = ["create:crushing", "create:milling", "create:cutting"].includes(type);
+      document.getElementById("heat-wrap").style.display = isBasin ? "block" : "none";
+      document.getElementById("fluids-wrap").style.display = isBasin ? "block" : "none";
+      document.getElementById("time-wrap").style.display = hasTime ? "block" : "none";
+    }
+
+    function renderInputs() {
+      const itemList = document.getElementById("items-list");
+      itemList.innerHTML = "";
+      items.forEach((val, idx) => {
+        const row = document.createElement("div");
+        row.className = "row";
+        row.innerHTML = `
+          <input value="${val}" oninput="items[${idx}] = this.value; render();" />
+          <button class="danger" onclick="items.splice(${idx}, 1); renderInputs();">✕</button>
+        `;
+        itemList.appendChild(row);
+      });
+
+      const fluidList = document.getElementById("fluids-list");
+      fluidList.innerHTML = "";
+      fluids.forEach((f, idx) => {
+        const row = document.createElement("div");
+        row.className = "row";
+        row.innerHTML = `
+          <input style="flex:2;" placeholder="minecraft:water" value="${f.fluid}" oninput="fluids[${idx}].fluid = this.value; render();" />
+          <input style="flex:1;" type="number" min="1" value="${f.amount}" oninput="fluids[${idx}].amount = parseInt(this.value, 10) || 1000; render();" />
+          <button class="danger" onclick="fluids.splice(${idx}, 1); renderInputs();">✕</button>
+        `;
+        fluidList.appendChild(row);
+      });
+
+      render();
+    }
+
+    function addItem() {
+      items.push("minecraft:iron_ingot");
+      renderInputs();
+    }
+
+    function addFluid() {
+      fluids.push({ fluid: "minecraft:water", amount: 1000 });
+      renderInputs();
+    }
+
+    function buildRecipe() {
+      const type = document.getElementById("recipe-type").value;
+      const isBasin = type === "create:mixing" || type === "create:compacting";
+      const hasTime = ["create:crushing", "create:milling", "create:cutting"].includes(type);
+      const heat = document.getElementById("heat-req").value;
+
+      const ingredients = [];
+      items.filter(i => i.trim()).forEach(raw => {
+        const val = raw.trim();
+        if (val.startsWith("#")) {
+          ingredients.push({ tag: val.slice(1) });
+        } else {
+          ingredients.push({ item: val });
+        }
+      });
+
+      if (isBasin) {
+        fluids.filter(f => f.fluid.trim()).forEach(f => {
+          ingredients.push({
+            type: "fluid_stack",
+            fluid: f.fluid.trim(),
+            amount: Math.max(1, parseInt(f.amount, 10) || 1000)
+          });
+        });
+      }
+
+      const recipe = { type };
+      if (isBasin && heat !== "none") {
+        recipe.heat_requirement = heat;
+      }
+
+      recipe.ingredients = ingredients;
+      recipe.results = [
+        {
+          count: Math.max(1, parseInt(document.getElementById("output-count").value, 10) || 1),
+          item: {
+            id: document.getElementById("output-id").value.trim() || "minecraft:copper_ingot"
+          }
+        }
+      ];
+
+      if (hasTime) {
+        recipe.processing_time = Math.max(1, parseInt(document.getElementById("processing-time").value, 10) || 100);
+      }
+
+      return recipe;
+    }
+
+    function render() {
+      document.getElementById("json-preview").textContent = JSON.stringify(buildRecipe(), null, 2);
+    }
+
+    function copyJson() {
+      navigator.clipboard.writeText(document.getElementById("json-preview").textContent);
+      const btn = document.getElementById("copy-btn");
+      btn.textContent = "Copied!";
+      setTimeout(() => (btn.textContent = "Copy JSON"), 1500);
+    }
+
+    function downloadJson() {
+      const data = buildRecipe();
+      const rawId = data.results[0].item.id;
+      const fileName = (rawId.includes(":") ? rawId.split(":")[1] : rawId) + ".json";
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = fileName;
+      a.click();
+    }
+
+    toggleFields();
+    renderInputs();
+  </script>
+</body>
+</html>
